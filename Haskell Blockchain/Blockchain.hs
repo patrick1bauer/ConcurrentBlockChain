@@ -7,7 +7,7 @@ data Transaction = Transaction { from :: String
                                , data :: String
                                } deriving (Generic, Show)
 
-data Block = Bloc { idx :: Int
+data Block = Block { idx :: Int
                   , txs :: [Transaction]
                   , phash :: String
                   , hash  :: String
