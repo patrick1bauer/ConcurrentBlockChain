@@ -1,4 +1,5 @@
-import java.security.MessageDigest;		// Import the MessageDigest Class
+import java.math.BigInteger;
+import java.security.MessageDigest;
 import java.util.Scanner;				// Import the Scanner class
 import java.util.Date;
 import java.util.*;
@@ -7,8 +8,8 @@ import java.util.*;
 // blockchain class
 public class BlockchainSingleThreaded {
 	static List<Block> blockchain = new ArrayList<>();
+    // Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
 	static int prefix = 4;
-	static String prefixString = new String(new char[prefix]).replace('\0', '0');
 	
 	// main method
 	public static void main(String[] args){
@@ -26,7 +27,12 @@ public class BlockchainSingleThreaded {
 		
 		/* Continue until we reach the end of the input file
 		while(){
-			
+			Loop through input file, reading in line by line of text
+            Use block constructor and send it new line of data
+            mineBlock on newly created block
+            upon return, validate created block
+                - Should we replicate what would logically occur should this verification fail?
+                    (even though we know ours won't)
 		}*/
 		
 		System.out.println(blockchain.get(0).getData());
@@ -93,7 +99,8 @@ class Block{
 	public void setNonce(int nonce){
 		this.nonce = nonce;
 	}
-	
+
+
 	// Method to calculate block hash
 	public String calculateBlockHash(){
 		// Concatenate parts of the block to generate the hash
@@ -102,34 +109,21 @@ class Block{
 			+ Integer.toString(nonce)
 			+ data;
 		
-		// Initialize MessageDigest class
-		MessageDigest digest = null;
-		
-		// Initialize the byte array
-		byte[] bytes = null;
-		
-		
-		try {
-			// Generate an instance of SHA-256 hash
-			digest = MessageDigest.getInstance("SHA-256");
-			
-			// Generate the hash value of our input data, which is a byte array
-			bytes = digest.digest(dataToHash.getBytes("UTF-8"));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		
-		// Instantiate the StringBuffer class
-		StringBuffer buffer = new StringBuffer();
-		
-		// For every byte in the byte array
-		for(byte b : bytes){
-			// Append the byte to the buffer
-			buffer.append(String.format("%02x", b));
-		}
-		
-		// Return the buffer as a String
-		return buffer.toString();
+        // Initialize the byte array
+        byte[] byteRep = null;
+        String hashedBlock = null;
+
+        try {
+            // Create a new MessageDigest object which implements SHA-256
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            // Generate the hash value of our input data, which is a byte array
+            byteRep = md.digest(dataToHash.getBytes());
+            // Convert byte array to correctly formatted string
+            hashedBlock = String.format("%x", new BigInteger(1, byteRep));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return hashedBlock;
 	}
 	
 	// Method to mine a block
@@ -137,15 +131,13 @@ class Block{
 		// Define the prefix we want to find
 		String prefixString = new String(new char[prefix]).replace('\0', '0');
 		
-		// Until we find a hash with the correct substring (prefix)
+		// Until we find a hash beginning with the correct prefix, meaning we have found a hash smaller than our necessary target
 		while(!hash.substring(0, prefix).equals(prefixString)){
 			// Increment the nonce
 			nonce++;
-			
 			// Calculate another block hash
 			hash = calculateBlockHash();
-		}
-		
+        }	
 		return hash;
 	}
 	
@@ -161,4 +153,5 @@ class Block{
 		
 	}
 	*/
+
 }
