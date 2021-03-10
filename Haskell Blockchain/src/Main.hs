@@ -3,5 +3,8 @@ import SingleThreadedBlockChain
 
 main :: IO ()
 main = do
-  putStrLn "hello world"
-  printConfig
+  args <- getArgs
+  content <- readFile (args !! 0)
+  putStr $ show $ makeBlockChain "" story 0
+     where
+       story = lines content
