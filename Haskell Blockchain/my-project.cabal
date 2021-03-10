@@ -20,4 +20,5 @@ executable my-project
   build-depends:       base >= 4.7 && < 5,
                        time,
                        utf8-string,
-                       base16-bytestring
+                       base16-bytestring,
+                       cryptohash
