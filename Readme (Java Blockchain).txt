@@ -1,3 +1,4 @@
+
       _                    ____  _            _        _           _       
      | |                  |  _ \| |          | |      | |         (_)      
      | | __ ___   ____ _  | |_) | | ___   ___| | _____| |__   __ _ _ _ __  
@@ -45,16 +46,29 @@ blockchainMultiThreaded.java ---- The previously single-threaded blockchain, upg
 
 Navigate to the directory containing the program.
 
+############################################################################################
+
+MIDTERM REPORT: The blockchainMultiThreaded.java file is not complete.
+                The blockchainSingleThreaded.java is still in testing.
+
+############################################################################################
+
+First, verify that the desired input file is within the same folder as the blockchain program you
+wish to run. 
+
 In Command Prompt, compile and run the blockchainSingleThreaded program with the command:
-	javac blockchainSingleThreaded.java && java blockchainSingleThreaded
+	javac blockchainSingleThreaded.java
+	then run:
+	java blockchainSingleThreaded < [Name of desired input file].txt
 	
 In Command Prompt, compile and run the blockchainMultiThreaded program with the command:
-	javac blockchainMultiThreaded.java && java blockchainMultiThreaded
+	javac blockchainMultiThreaded.java
+	then run:
+	java blockchainMultiThreaded < [Name of desired input file].txt
 
-The output of the single-threaded version will be written to a file "[Specify filename here]" in 
-the same file location as the program.
-The multi-threaded version's output is written to "[Specify filename here]", also in the same file
-location as the program.
+The output of the single-threaded version will be written to the command line.
+The multi-threaded version's output is written to the command line.
+[Finalized versions will write to files]
 
 Output format:
 [Example of variables that get printed, and in what format. I included an example below, 
@@ -107,5 +121,3 @@ Our Methodology:
 4. Compare the effiency of the multi-threaded versions across all languages.
 
 --------------------------------------------------------------------------------------------
-
-## 5. [Blank space for later additions]
