@@ -26,9 +26,10 @@ COP 4520, Spring 2021, Team 3:
 COP 4520.001: Concepts of Parallel and Distributed Processing with Professor Damian Dechev (Spring 2021)
 Department of Computer Science, College of College of Engineering and Computer Science at UCF
 
-This program implements a simple blockchain written in Haskell. There are two versions included:
+This program implements a simple blockchain written in Haskell. There are 2 implementations included:
 1.) blockchainSingleThreaded.hs implements a simple blockchain*.
 2.) blockchainMultiThreaded.hs takes the simple blockchain, and implements a concurrent algorithm.
+
 
 *When using the term "simple blockchain", we refer to a program that represents a blockchain in theory,
 but excludes the vast network of nodes typically involved in validatin the blockchain. 
@@ -39,11 +40,19 @@ efficiency in a closed environment.
 
 ## 2. USAGE
 
-Two programs are included:
+Three modules are included:
 blockchainSingleThreaded.hs --- A basic, single-threaded implementation of a blockchain
 blockchainMultiThreaded.hs ---- The previously single-threaded blockchain, upgraded with concurrency
+Main.hs ----------------------- GHCI loads this module, which internally loads both previous modules
 
-Navigate to the directory containing the program.
+Navigate to the directory containing the program. All module code is in the /src folder.
+
+############################################################################################
+
+MIDTERM REPORT: The blockchainMultiThreaded.hs file is not complete.
+                The blockchainSingleThreaded.hs and Main.hs is still in testing.
+
+############################################################################################
 
 In Command Prompt, compile and run the blockchainSingleThreaded program with the commands:
 	ghc -o blockchainSingleThreaded blockchainSingleThreaded.hs
