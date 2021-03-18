@@ -1,7 +1,9 @@
 // Includes
 #include <iostream>
+#include <fstream>
 #include <string>
-#include <list>
+// #include <list> // Lists in C++ don't allow access to elements by index.
+#include <vector> // Vectors in C++ do.
 #include <iterator>
 #include <chrono>
 #include <ctime>
@@ -14,7 +16,7 @@ using namespace std;
 class BlockchainSingleThreaded
 {
     // Create blockchain (list of blocks)
-    static list<Block> blockchain;
+    static vector<Block> blockchain;
 
     // Difficulty of block mining. Higher is harder
     int prefix = 4;
@@ -24,30 +26,80 @@ class BlockchainSingleThreaded
     {
         // Create genesis block
         cout << "Creating genesis block" << endl;
-        string genesisData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+
+        // Grab the first file line as data for the genesis block
+        ifstream inputFile;
+        inputFile.open("gorgias.txt", ios::in);
+        string data;
+        if (inputFile.is_open())
+        {
+            getline(inputFile, data);
+        }
+        else
+        {
+            cout << "[Error]: FILE IS NOT OPEN" << endl;
+        }
+
+        // Instantiate the genesis block
         long currentDate = (chrono::duration_cast<chrono::milliseconds>((chrono::time_point_cast<chrono::milliseconds>(chrono::system_clock::now())).time_since_epoch())).count();
-        Block genesisBlock(genesisData, NULL, currentDate);
+        Block genesisBlock(data, NULL, currentDate);
+
+        // Mine the genesis block to create the hash for the next block.
+        genesisBlock.mineBlock(prefix);
+
+        // Validate our newly mined genesis block, using null as prev hash.
+        while(!genesisBlock.validateBlock(blockchain, prefix))
+        {
+            // If our validation fails, retry mining after resetting values.
+            genesisBlock.setNonce(0);
+            long currentDate = (chrono::duration_cast<chrono::milliseconds>((chrono::time_point_cast<chrono::milliseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+            genesisBlock.setTimeStamp(currentDate);
+            genesisBlock.mineBlock(prefix);
+        }
 
         // Add genesis block to the blockchain
-        blockchain.push_front(genesisBlock);
+        blockchain.push_back(genesisBlock);
+        string previousHash = genesisBlock.getHash();
 
-        // Add more blocks
-        while(true)
+        // Continue until we reach the end of the input file
+        while(inputFile.peek() != EOF)
         {
-            // Gather data for new block
-            // TODO
-            string blockData = "sometext";
-            string previousHash = blockchain.front().getHash();
+            // Read in the next line
+            if (inputFile.is_open())
+            {
+                getline(inputFile, data);
+            }
+            else
+            {
+                cout << "[Error]: FILE IS NOT OPEN" << endl;
+            }
+
+            // Create a new block with our line of data.
             long currentDate = (chrono::duration_cast<chrono::milliseconds>((chrono::time_point_cast<chrono::milliseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+            Block newBlock(data, previousHash, currentDate);
+            
+            // Mine the new block
+            newBlock.mineBlock(prefix);
+            while(!newBlock.validateBlock(blockchain, prefix))
+            {
+                // If our validation fails, retry mining after resetting values.
+                newBlock.setNonce(0);
+                long currentDate = (chrono::duration_cast<chrono::milliseconds>((chrono::time_point_cast<chrono::milliseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+                newBlock.setTimeStamp(currentDate);
+                newBlock.mineBlock(prefix);
+            }
 
-            // Create new block with data
-            Block newBlock(blockData, previousHash, currentDate);
-
-            // Mine block on newly created block
-
-            // Validate created block
-
+            // Add our newly mined and verified block and set up values for next block
+            blockchain.push_back(newBlock);
+            previousHash = newBlock.getHash();
         }
+        
+        // Print out genesis block data
+        cout << blockchain.front().getData() << endl;
+
+        // Close input file
+        inputFile.close();
+
         return 0;
     }
 };
@@ -56,60 +108,6 @@ class BlockchainSingleThreaded
 class Block
 {
     public:
-        // Block constructor
-        Block(string data, string previousHash, long timeStamp)
-        {
-            this->data = data;
-            this->previousHash = previousHash;
-            this->timeStamp = timeStamp;
-            this->hash = calculateBlockHash();
-        }
-
-        // Getters
-        string getHash()
-        {
-            return this->hash;
-        }
-        string getPreviousHash()
-        {
-            return this->previousHash;
-        }
-        string getData()
-        {
-            return this->data;
-        }
-        long getTimeStamp()
-        {
-            return this->timeStamp;
-        }
-        int getNonce()
-        {
-            return this->nonce;
-        }
-
-        // Setters
-        void setHash(string hash)
-        {
-            this->hash = calculateBlockHash();
-        }
-        void setPreviousHash(string previousHash)
-        {
-            this->previousHash = previousHash;
-        }
-        void setData(string data)
-        {
-            this->data = data;
-        }
-        void setTimeStamp(long timeStamp)
-        {
-            this->timeStamp = timeStamp;
-        }
-        void setNonce(int nonce)
-        {
-            this->nonce = nonce;
-        }
-
-    private:
         // Block properties
         string data;
         string hash;
@@ -117,45 +115,125 @@ class Block
         long timeStamp;
         int nonce;
 
-        // Calculate block hash
-        string calculateBlockHash()
+        // Block constructor
+        Block(string data, string previousHash, long timeStamp)
         {
-            // Combine block data
-            string blockData = this->previousHash + to_string(timeStamp) + to_string(nonce) + data;
 
-            // Calculate hash based on block's data
-            string hashedBlock = sha256(blockData);
-
-            // Return hash
-            return hashedBlock;
         }
 
-        // Mine a block
-        string mineBlock(int prefix)
+        // Standard getters
+        string getHash()
+        {
+            return this->hash;
+        }
+
+        string getPreviousHash()
+        {
+            return this->previousHash;
+        }
+
+        string getData()
+        {
+            return this->data;
+        }
+
+        long getTimeStamp()
+        {
+            return this->timeStamp;
+        }
+
+        int getNonce()
+        {
+            return this->nonce;
+        }
+
+        // Standard setters
+        void setHash()
+        {
+            this->hash = calculateBlockHash();
+        }
+
+        void setPreviousHash(string inputHash)
+        {
+            this->previousHash = inputHash;
+        }
+
+        void setData(string inputData)
+        {
+            this->data = inputData;
+        }
+
+        void setTimeStamp(long inputTimeStamp)
+        {
+            this->timeStamp = inputTimeStamp;
+        }
+
+        void setNonce(int inputNonce)
+        {
+            this.nonce = inputNonce;
+        }
+
+        // Method to calculate block hash
+        string calculateBlockHash()
+        {
+            // Concatenate parts of the block to generate the hash
+            string dataToHash = this->previousHash + to_string(this->timeStamp) + to_string(this->nonce) + this->data;
+
+            // Calculate hash based on block's data
+            string hashedData = sha256(dataToHash);
+
+            // Return hashed data
+            return hashedData;
+        }
+
+        // Method to mine a block
+        void mineBlock(int prefix)
         {
             // Define the prefix we want to find
             string prefixString = to_string(prefix);
 
             // Find a hash smaller than our necessary target
-            while(hash.substr(0, prefix) == prefixString)
+            while(this->hash.substr(0, prefix) == prefixString)
             {
                 // Increment the nonce
                 nonce++;
-                
+
                 // Calculate another block hash
-                hash = calculateBlockHash();
+                this->hash = calculateBlockHash();
             }
+
+            // Finished mining the block
+            return;
         }
 
-        // Build a block
-        void buildBlock()
-        {
-
-        }
         // Validate the block
-        bool validateBlock()
+        bool validateBlock(vector<Block> blockchain, int prefix)
         {
-            
-            return true;
+            // Initialize a boolean value to true
+            bool valid = true;
+
+            // The prefix string we want to match our hash prefix to
+            string prefixString = to_string(prefix);
+
+            // Local variable to store the size of the blockchain
+            int size = blockchain.size();
+
+            // If this blockchain is NOT empty then we are NOT validating the genesis block
+            if(size >= 1)
+            {
+                // Validate the previous hash, hash and prefix
+                valid = (this->previousHash == blockchain.at(size - 1).previousHash) && (this->hash == calculateBlockHash()) && (this->hash.rfind(prefixString, 0) == 0);
+            }
+            // Otherwise it MUST be the genesis block since the blockchain is empty
+            else
+            {
+                valid = (this->previousHash == "") && (this->hash == calculateBlockHash()) && (this->hash.rfind(prefixString, 0) == 0);
+            }
+
+            // Return whether the block is valid or not.
+            return valid;
         }
+
+    private:
+
 };
