@@ -8,7 +8,7 @@
 #include <ctime>
 #include "sha256.h"
 
-// Standard namespace
+// Namespaces
 using namespace std;
 
 // Block class
@@ -158,8 +158,14 @@ class Block
 // Main method
 int main()
 {
+    // Create a vector of block times
+    vector<float> executionTimes;
+
+    // Start timer
+    long startBlockchain = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+
     // Create blockchain (list of blocks)
-    static vector<Block> blockchain;
+    vector<Block> blockchain;
 
     // Difficulty of block mining. Higher is harder
     int prefix = 3;
@@ -200,15 +206,19 @@ int main()
     // Add genesis block to the blockchain
     blockchain.push_back(genesisBlock);
 
-    cout << "Blockchain initialized, begining to add data blocks" << endl;
-    // Continue until we reach the end of the input file
+    cout << "Blockchain initialized" << endl << "Adding data blocks..." << endl;
+
+    // Continue adding blocks until we reach the end of the input file
     while(inputFile.peek() != EOF)
     {
+        // Start timer for this block
+        long startBlock = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+
         // Read in the next line
         if (inputFile.is_open())
         {
             getline(inputFile, data);
-            cout << data << endl;
+            // cout << data << endl;
         }
         else
         {
@@ -235,14 +245,72 @@ int main()
 
         // Add our newly mined and verified block and set up values for next block
         blockchain.push_back(newBlock);
+
+        // End timer for this block
+        long endBlock = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+
+        // Calculate execution time for block
+        float durationBlock = (endBlock - startBlock) / 1000.f;
+
+        // Add duration to vector
+        executionTimes.push_back(durationBlock);
     }
-    
-    // Print out genesis block data
-    cout << "BLOCK CHAIN DONE!" << endl;
-    // cout << blockchain.front().getData() << endl;
 
     // Close input file
     inputFile.close();
+
+    // Stop timer
+    long stopBlockchain = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
+
+    // Calculate execution time
+    float durationBlockchain = (stopBlockchain - startBlockchain) / 1000.f;
+
+    // Print block execution times to txt file & calculate interesting data features
+    float sum = 0.0;
+    float fastestBlockTime = 100000000.0;
+    float slowestBlockTime = 0.0;
+    ofstream executionTimeFile;
+    executionTimeFile.open("executionTimes.txt");
+    if (executionTimeFile.is_open())
+    {
+        for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
+        {
+            // Write execution time to file
+            executionTimeFile << executionTimes.at(dataEntryIndex) << endl;
+
+            // Add execution time to sum
+            sum += executionTimes.at(dataEntryIndex);
+            
+            // Get fastest execution time
+            if (executionTimes.at(dataEntryIndex) < fastestBlockTime)
+            {
+                fastestBlockTime = executionTimes.at(dataEntryIndex);
+            }
+
+            // Get slowest execution time
+            if (executionTimes.at(dataEntryIndex) > slowestBlockTime)
+            {
+                slowestBlockTime = executionTimes.at(dataEntryIndex);
+            }
+        }
+    }
+    else
+    {
+        cout << "[Error]: FILE IS NOT OPEN" << endl;
+    }
+
+    float averageBlockTime = sum / (executionTimes.size());
+
+    // Print out genesis block data
+    cout << "BLOCK CHAIN DONE!" << endl;
+    cout << "Number of blocks added: " + to_string(executionTimes.size()) << endl;
+    cout << "Total execution time: " + to_string(durationBlockchain) + " ms." << endl;
+    cout << "Average block execution time: " + to_string(averageBlockTime) + " ms." << endl;
+    cout << "Fastest block execution time: " + to_string(fastestBlockTime) + " ms." << endl;
+    cout << "Slowest block execution time: " + to_string(slowestBlockTime) + " ms." << endl;
+    // Print entire blockchain to txt file
+    // cout << blockchain.front().getData() << endl;
+
 
     return 0;
 }
