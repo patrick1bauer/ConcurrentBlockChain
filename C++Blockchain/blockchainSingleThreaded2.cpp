@@ -93,7 +93,6 @@ class Block
 
             // Calculate hash based on block's data
             string hashedData = sha256(dataToHash);
-            // cout << "hashed data: >" + hashedData + "<" << endl;
 
             // Return hashed data
             return hashedData;
@@ -137,7 +136,6 @@ class Block
                 // Validate the previous hash, hash and prefix
                 bool previousHashValid = this->previousHash == blockchain.at(size - 1).hash;
                 bool hashValid = this->hash == calculateBlockHash();
-
                 valid = previousHashValid && hashValid;
             }
             // Otherwise it MUST be the genesis block since the blockchain is empty
@@ -146,7 +144,6 @@ class Block
                 string emptyHash = "0000000000000000000000000000000000000000000000000000000000000000";
                 bool previousHashValid = this->previousHash == emptyHash;
                 bool hashValid = this->hash == calculateBlockHash();
-
                 valid = previousHashValid && hashValid;
             }
 
@@ -171,7 +168,6 @@ int main()
     // Difficulty of block mining. Higher is harder
     int prefix = 2;
 
-    // Create genesis block
     // Grab the first file line as data for the genesis block
     ifstream inputFile;
     inputFile.open("../gorgias.txt", ios::in);
@@ -219,7 +215,6 @@ int main()
         if (inputFile.is_open())
         {
             getline(inputFile, data);
-            // cout << data << endl;
         }
         else
         {
@@ -315,7 +310,6 @@ int main()
 
     // Print entire blockchain to txt file.
     // cout << blockchain.front().getData() << endl;
-
 
     return 0;
 }
