@@ -9,7 +9,7 @@ data Block = Block { contents :: String
              , previousHash :: String
              , timeStamp :: String
              , nonce :: Maybe Int
-             }
+             } deriving (Show)
 
 genesisBlock :: String -> Block
 genesisBlock time = Block contents hash previousHash time Nothing

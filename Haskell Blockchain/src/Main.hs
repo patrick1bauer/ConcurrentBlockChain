@@ -2,11 +2,14 @@ module Main where
 import SingleThreadedBlockChain
 import Data.Time.Clock.System (getSystemTime)
 import System.IO (readFile)
+import System.TimeIt (timeIt)
+import System.Environment ( getArgs )
 
 main :: IO ()
 main = do
   args <- getArgs
-  time <- show $ getSystemTime
+  time <- getSystemTime
   content <- readFile (args !! 0)
   let story = lines content
-  putStr $ show $ makeBlockChain "" story 0 time
+  timeIt $ putStrLn ("Result: " ++ (show (makeBlockChain "" story 0 (show time))))
+

@@ -21,4 +21,6 @@ executable my-project
                        time,
                        utf8-string,
                        base16-bytestring,
-                       cryptohash
+                       cryptohash,
+                       timeit
+
