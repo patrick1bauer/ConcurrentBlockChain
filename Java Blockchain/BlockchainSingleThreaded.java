@@ -1,6 +1,5 @@
 import java.security.MessageDigest;
-import java.time.Duration;
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Scanner; // Import the Scanner class
 import java.util.Date;
 import java.util.*;
@@ -21,13 +20,15 @@ public class BlockchainSingleThreaded {
 		String data = null;
 		// Grab the first file line as data for the genesis block
 		data = in.nextLine();
-		long startBlockchain = System.nanoTime();
+
+		ArrayList<Long> times = new ArrayList<Long>();
 		long shortestBlock = Long.MAX_VALUE;
 		long longestBlock = Long.MIN_VALUE;
 		long blockTime;
 		long startBlock;
 		long endBlock;
 
+		startBlock = System.nanoTime();
 		// Instantiate the genesis block
 		Block genesisBlock = new Block(data, "", new Date().getTime());
 		// Mine the genesis block, to create the hash for our next block
@@ -42,15 +43,17 @@ public class BlockchainSingleThreaded {
 		}
 		// Add genesis block to the blockchain
 		blockchain.add(genesisBlock);
+		endBlock = System.nanoTime();
+		times.add(endBlock - startBlock);
 		System.out.println("Blockchain initialized");
 		System.out.println("Adding data blocks...");
 		String previousHash = genesisBlock.getHash();
 
 		// Continue until we reach the end of the input file
 		while(in.hasNextLine()){
-			startBlock = System.nanoTime();
 			// Read in line
 			data = in.nextLine();
+			startBlock = System.nanoTime();
 			// Create a new block with our line of data
 			Block newBlock = new Block(data, previousHash, new Date().getTime());
 			newBlock.mineBlock(prefix);
@@ -66,19 +69,23 @@ public class BlockchainSingleThreaded {
 			//System.out.println(newBlock.getData());
 			endBlock = System.nanoTime();
 			blockTime = endBlock - startBlock;
-			if(shortestBlock > blockTime)
-			{
-				shortestBlock = blockTime;
-			}
-			if(longestBlock < blockTime)
-			{
-				longestBlock = blockTime;
-			}
+			times.add(blockTime);
 			previousHash = newBlock.getHash();
-
 			}
-		long endBlockchain = System.nanoTime();
-		long totalTime = endBlockchain - startBlockchain;
+		// Grab miminum time, maximum time, and total time
+		long totalTime = 0; 
+		for(Long time : times)
+		{
+			totalTime += time;
+			if(shortestBlock > time)
+			{
+				shortestBlock = time;
+			}
+			if(longestBlock < time)
+			{
+				longestBlock = time;
+			}
+		}
 		System.out.println("Blockchain Complete");
 		System.out.println("Number of blocks added: " + blockchain.size());
 		System.out.println("Total execution time: " + (double)totalTime/1000.000  + " ms.");
@@ -211,6 +218,9 @@ class Block{
       valid = (previousHash.equals(blockchain.get(size - 1).hash))
             && (hash.equals(calculateBlockHash()))
             && (hash.startsWith(prefixString));
+		//System.out.println("prev hash  " + previousHash + " my prv hash" + blockchain.get(size - 1).hash);
+		//System.out.println("my hash  " + hash + " recalced hash" + calculateBlockHash());
+		//System.out.println("starting w prefix  " + hash.startsWith(prefixString));
     }
 
     // Otherwise it MUST be the genesis block since the blockchain is empty
