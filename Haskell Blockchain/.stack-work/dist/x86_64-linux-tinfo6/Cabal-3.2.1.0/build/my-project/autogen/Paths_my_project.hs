@@ -29,12 +29,12 @@ version :: Version
 version = Version [0,1,0,0] []
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 
-bindir     = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/bin"
-libdir     = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/lib/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0-H99tUXFBROCi2OfxywPJf-my-project"
-dynlibdir  = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/lib/x86_64-linux-ghc-8.10.4"
-datadir    = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/share/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0"
-libexecdir = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/libexec/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0"
-sysconfdir = "/home/stacey/Haskell/my-project/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/etc"
+bindir     = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/bin"
+libdir     = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/lib/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0-LDH8kxuM9jwvtYU3H9Vhw-my-project"
+dynlibdir  = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/lib/x86_64-linux-ghc-8.10.4"
+datadir    = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/share/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0"
+libexecdir = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/libexec/x86_64-linux-ghc-8.10.4/my-project-0.1.0.0"
+sysconfdir = "/home/stacey/cop4520/ConcurrentBlockChain/Haskell Blockchain/.stack-work/install/x86_64-linux-tinfo6/a95b4f5be29c1d0bacfe07ae22cd40905e6ad2d98ddd0b0b7145cfecfc34f3f1/8.10.4/etc"
 
 getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: IO FilePath
 getBinDir = catchIO (getEnv "my_project_bindir") (\_ -> return bindir)
