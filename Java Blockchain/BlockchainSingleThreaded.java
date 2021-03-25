@@ -9,7 +9,7 @@ import java.util.*;
 public class BlockchainSingleThreaded {
 	static List<Block> blockchain = new ArrayList<>();
     // Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
-	static int prefix = 1;
+	static int prefix = 2;
 
 	// main method
 	public static void main(String[] args) {
@@ -21,12 +21,12 @@ public class BlockchainSingleThreaded {
 		// Grab the first file line as data for the genesis block
 		data = in.nextLine();
 
-		ArrayList<Long> times = new ArrayList<Long>();
-		long shortestBlock = Long.MAX_VALUE;
-		long longestBlock = Long.MIN_VALUE;
-		long blockTime;
-		long startBlock;
-		long endBlock;
+		ArrayList<Double> times = new ArrayList<Double>();
+		double shortestBlock = Double.MAX_VALUE;
+		double longestBlock = Double.MIN_VALUE;
+		double blockTime;
+		double startBlock;
+		double endBlock;
 
 		startBlock = System.nanoTime();
 		// Instantiate the genesis block
@@ -44,7 +44,7 @@ public class BlockchainSingleThreaded {
 		// Add genesis block to the blockchain
 		blockchain.add(genesisBlock);
 		endBlock = System.nanoTime();
-		times.add(endBlock - startBlock);
+		//times.add(endBlock - startBlock);
 		System.out.println("Blockchain initialized");
 		System.out.println("Adding data blocks...");
 		String previousHash = genesisBlock.getHash();
@@ -73,8 +73,8 @@ public class BlockchainSingleThreaded {
 			previousHash = newBlock.getHash();
 			}
 		// Grab miminum time, maximum time, and total time
-		long totalTime = 0; 
-		for(Long time : times)
+		double totalTime = 0.0; 
+		for(Double time : times)
 		{
 			totalTime += time;
 			if(shortestBlock > time)
@@ -88,10 +88,11 @@ public class BlockchainSingleThreaded {
 		}
 		System.out.println("Blockchain Complete");
 		System.out.println("Number of blocks added: " + blockchain.size());
-		System.out.println("Total execution time: " + (double)totalTime/1000.000  + " ms.");
-		System.out.println("Average block execution time: " + (double)(totalTime / blockchain.size())/1000.000  + " ms.");
-		System.out.println("Fastest block execution time: " + (double)shortestBlock/1000.000  + " ms.");
-		System.out.println("Slowest block execution time: " + (double)longestBlock/1000.000  + " ms.");
+		System.out.println("Total execution time: " + String.format("%.4f",totalTime/ 1000000.00000)+ " ms.");
+		String avg = String.format("%.4f", (double)(totalTime / (double)blockchain.size())/ 1000000.00000 );
+		System.out.println("Average block execution time: " + avg + " ms.");
+		System.out.println("Fastest block execution time: " + String.format("%.4f", shortestBlock/ 1000000.00000) + " ms.");
+		System.out.println("Slowest block execution time: " + String.format("%.4f",longestBlock/ 1000000.00000) + " ms.");
 		in.close();
 	}
 
