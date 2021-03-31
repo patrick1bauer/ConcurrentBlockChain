@@ -1,0 +1,26 @@
+name:                my-project
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/githubuser/my-project#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Stacey Dale
+maintainer:          stacey.dale2311@gmail.com
+copyright:           2021 Stacey Dale
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable my-project
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5,
+                       time,
+                       utf8-string,
+                       base16-bytestring,
+                       cryptohash,
+                       timeit
+
