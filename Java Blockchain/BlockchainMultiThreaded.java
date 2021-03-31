@@ -29,18 +29,21 @@ public class BlockchainMultiThreaded {
 		double startBlock;
 		double endBlock;
 
+		// Create the thread pool using the executor service
+		ExecutorService executorService = Executors.newFixedThreadPool(8);
+
 		startBlock = System.nanoTime();
 		// Instantiate the genesis block
 		Block genesisBlock = new Block(data, "", new Date().getTime());
 		// Mine the genesis block, to create the hash for our next block
-		genesisBlock.mineBlock(prefix);
+		genesisBlock.mineBlock(prefix, executorService);
 		// Validate our newly mined genesis block, using null as prev hash
 		while(!genesisBlock.validateBlock(blockchain, prefix))
 		{
 			// If our validation fails retry mining after resetting values
 			genesisBlock.setNonce(0);
 			genesisBlock.setTimeStamp(new Date().getTime());
-			genesisBlock.mineBlock(prefix);
+			genesisBlock.mineBlock(prefix, executorService);
 		}
 		// Add genesis block to the blockchain
 		blockchain.add(genesisBlock);
@@ -57,7 +60,7 @@ public class BlockchainMultiThreaded {
 			startBlock = System.nanoTime();
 			// Create a new block with our line of data
 			Block newBlock = new Block(data, previousHash, new Date().getTime());
-			newBlock.mineBlock(prefix);
+			newBlock.mineBlock(prefix, executorService);
 			while(!newBlock.validateBlock(blockchain, prefix))
 			{
 				System.out.println("did not mine a block");
@@ -65,7 +68,7 @@ public class BlockchainMultiThreaded {
 				// If our validation fails retry mining after resetting values
 				newBlock.setNonce(0);
 				newBlock.setTimeStamp(new Date().getTime());
-				newBlock.mineBlock(prefix);
+				newBlock.mineBlock(prefix, executorService);
 			}
 			// Add our newly mined and verified block and set up values for next block
 			blockchain.add(newBlock);
@@ -75,6 +78,8 @@ public class BlockchainMultiThreaded {
 			times.add(blockTime);
 			previousHash = newBlock.getHash();
 			}
+		
+			executorService.shutdownNow();
 		// Grab miminum time, maximum time, and total time
 		double totalTime = 0.0; 
 		for(Double time : times)
@@ -191,12 +196,9 @@ class Block{
 	}
 
 	// Method to mine a block
-	public void mineBlock(int prefix) throws InterruptedException, ExecutionException{
+	public void mineBlock(int prefix, ExecutorService executorService) throws InterruptedException, ExecutionException{
 		// Define the prefix we want to find
 		String prefixString = new String(new char[prefix]).replace('\0', '0');
-
-        // Create the thread pool using the executor service
-		ExecutorService executorService = Executors.newFixedThreadPool(8);
 
 		// Until we find a hash beginning with the correct prefix, 
         // meaning we have found a hash smaller than our necessary target 
@@ -216,10 +218,7 @@ class Block{
 				break;
             }
         }
-
-		executorService.shutdownNow();
-
-        return;
+	    return;
 	}
 
   // Method to validate the block
@@ -297,7 +296,7 @@ class Block{
 		public String call() throws Exception {
             // call the new calculate block hash method
 			myString = myCalculatedBlockHash();
-            
+        
             // return the string
 			return myString;
         }
