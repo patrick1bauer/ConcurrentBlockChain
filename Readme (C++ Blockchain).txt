@@ -42,20 +42,28 @@ efficiency in a closed environment.
 Two programs are included:
 blockchainSingleThreaded.cpp --- A basic, single-threaded implementation of a blockchain
 blockchainMultiThreaded.cpp ---- The previously single-threaded blockchain, upgraded with concurrency
+sha256.cpp --------------------- An outsourced C++ program to compute the SHA256 hash
+sha256.h ----------------------- The header file for the above program
+LICENSE.txt -------------------- The license accompanying the use of the SHA256 program
 
-Navigate to the directory containing the program.
+Navigate the console to the directory containing the program.
 
 In Command Prompt, compile and run the blockchainSingleThreaded program with the commands:
-	g++ -o blockchainSingleThreaded blockchainSingleThreaded.cpp
-	./blockchainSingleThreaded
+	g++ blockchainSingleThreaded.cpp sha256.cpp
+	./a.out
 	
 In Command Prompt, compile and run the blockchainMultiThreaded program with the commands:
-	g++ -o blockchainMultiThreaded blockchainMultiThreaded.cpp
-	./blockchainMultiThreaded
+	g++ blockchainMultiThreaded.cpp sha256.cpp
+	./a.out
+	
+ADDITIONAL ARGUMENTS:
+- Add "-p" to the end of the first line to have the blockchain printed out to a TXT file. (NOTE: This will dramatically increase execution times)
+	- This output will be saved to CPPSingleThreadedBlockchain.txt or CPPMultiThreadedBlockchain.txt, depending on which version was executed.
+	- Example: g++ blockchainSingleThreaded.cpp sha256.cpp -p
 
-The output of the single-threaded version will be written to a file "[Specify filename here]" in 
+The output of the single-threaded version will be written to a file "CPPSingleThreadedSummary.txt" in 
 the same file location as the program.
-The multi-threaded version's output is written to "[Specify filename here]", also in the same file
+The multi-threaded version's output is written to "CPPMultiThreadedSummary.txt", also in the same file
 location as the program.
 
 Output format:
@@ -88,7 +96,7 @@ blockchain_V3.in
 [These don't exist yet, but we're going to need something to compare across versions, and languages.]
 
 Both produce the same ledger, and their execution times over the test files are compared below:
-	Test Case:      					[blockchain_V1.in, blockchain_V2.in, blockchain_V3.in, ...]
+	Test Case:      			[blockchain_V1.in, blockchain_V2.in, blockchain_V3.in, ...]
 	Single-Threaded Execution Times: 	[0.0285768s, 0.1294918s, 1.0925716s, ...]
 	Multi-Threaded Execution Times: 	[0.0013407s, 0.0078569s, 0.0249165s, ...]
 
@@ -107,6 +115,7 @@ Our Methodology:
 2. Take each language's implementation, and convert it to a multi-threaded version.
 3. Compare the efficiency of the single and multi-threaded versions of a language.
 4. Compare the effiency of the multi-threaded versions across all languages.
+5. Compare the different between a language's single
 
 --------------------------------------------------------------------------------------------
 
