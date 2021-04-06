@@ -10,7 +10,7 @@ import java.util.concurrent.*;		// Import concurrent package
 public class BlockchainMultiThreaded {
 	static List<Block> blockchain = new ArrayList<>();
     // Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
-	static int prefix = 1;
+	static int prefix = 2;
 
 	// main method
 	public static void main(String[] args) throws InterruptedException, ExecutionException{
@@ -59,9 +59,7 @@ public class BlockchainMultiThreaded {
 			Block newBlock = new Block(data, previousHash, new Date().getTime());
 			newBlock.mineBlock(prefix);
 			while(!newBlock.validateBlock(blockchain, prefix))
-			{
-				System.out.println("did not mine a block");
-				
+			{				
 				// If our validation fails retry mining after resetting values
 				newBlock.setNonce(0);
 				newBlock.setTimeStamp(new Date().getTime());
@@ -74,7 +72,7 @@ public class BlockchainMultiThreaded {
 			blockTime = endBlock - startBlock;
 			times.add(blockTime);
 			previousHash = newBlock.getHash();
-			}
+		}
 		// Grab miminum time, maximum time, and total time
 		double totalTime = 0.0; 
 		for(Double time : times)
@@ -191,34 +189,56 @@ class Block{
 	}
 
 	// Method to mine a block
-	public void mineBlock(int prefix) throws InterruptedException, ExecutionException{
+	public void mineBlock(int prefix) throws InterruptedException, ExecutionException{		
 		// Define the prefix we want to find
 		String prefixString = new String(new char[prefix]).replace('\0', '0');
 
         // Create the thread pool using the executor service
 		ExecutorService executorService = Executors.newFixedThreadPool(8);
 
+		// Create an array list of futures
+		ArrayList<Future<String>> futureList = new ArrayList<Future<String>>();
+		int futureListIndex = 0;
+
 		// Until we find a hash beginning with the correct prefix, 
         // meaning we have found a hash smaller than our necessary target 
-		for(int i = 0; i < 100000; i++){
+		for(int i = 0; i > -1; i++){
 			// Instantiate the worker thread using the counter
 			Callable<String> worker = new WorkerThread(i);
-			
-			// Submit task and store result in future
-			Future<String> future = executorService.submit(worker); 
-			
-			// store the future value in the hash
-			hash = future.get();
 
-            // if we founcd the right hash then break for it
-            if(hash.substring(0, prefix).equals(prefixString)){
-                nonce = i;
-				break;
-            }
+			// Instantiate the future and submit the task
+			Future<String> future = executorService.submit(worker);
+
+			// Store in the future list
+			futureList.add(future);
+
+			// System.out.println("Future List contains " + futureList.size() + " elements.");
+
+			// check if the future is ready
+			while(futureListIndex < futureList.size() && futureList.get(futureListIndex).isDone()){				
+				// store the future value in the hash
+				hash = futureList.get(futureListIndex).get();
+
+            	// if we found the right hash
+            	if(hash.substring(0, prefix).equals(prefixString)){
+					// System.out.println("Future at index " + futureListIndex + " mined a Block!");
+
+                	// update the nonce to the thread's nonce
+					nonce = futureListIndex;
+					executorService.shutdownNow();
+					return;
+            	} 
+				
+				// increment the future list index
+				futureListIndex++;
+				
+			} 
         }
 
+		// if we still didn't mine a block shutdown the service
 		executorService.shutdownNow();
 
+		// return empty handed
         return;
 	}
 
