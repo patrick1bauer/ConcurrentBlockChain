@@ -42,6 +42,8 @@ efficiency in a closed environment.
 Two programs are included:
 blockchainSingleThreaded.cpp --- A basic, single-threaded implementation of a blockchain
 blockchainMultiThreaded.cpp ---- The previously single-threaded blockchain, upgraded with concurrency
+
+Additionally, an outsourced SHA256 program and it's license are included:
 sha256.cpp --------------------- An outsourced C++ program to compute the SHA256 hash
 sha256.h ----------------------- The header file for the above program
 LICENSE.txt -------------------- The license accompanying the use of the SHA256 program
@@ -115,7 +117,6 @@ Our Methodology:
 2. Take each language's implementation, and convert it to a multi-threaded version.
 3. Compare the efficiency of the single and multi-threaded versions of a language.
 4. Compare the effiency of the multi-threaded versions across all languages.
-5. Compare the different between a language's single
 
 --------------------------------------------------------------------------------------------
 
