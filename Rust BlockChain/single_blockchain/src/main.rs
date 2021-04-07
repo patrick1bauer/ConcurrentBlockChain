@@ -9,8 +9,13 @@ struct Block {
 
 impl Block {
     fn mine_block(&self, nonce: i64) -> i64 {
-        // will call genHash with nonce
-        nonce
+        let mut s = gen_hash(&self.content, &self.p_hash, Some(nonce));
+        let prefix = s.split_off(2);
+        if prefix.eq("00") {
+            return nonce
+        };
+
+        self.mine_block(nonce + 1)
     }
 
     fn new_block(content: &str, p_hash: &str) -> Block {
