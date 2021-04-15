@@ -1,5 +1,12 @@
 use sha256::digest;
+use std::env;
+use std::fs::File;
+use std::io::{self, BufRead};
+use std::path::Path;
+use std::convert::TryInto;
+use devtimer::DevTime;
 
+#[derive(Debug)]
 struct Block {
     content: String,
     p_hash: String,
@@ -8,51 +15,137 @@ struct Block {
 }
 
 impl Block {
-    fn mine_block(&self, nonce: i64) -> i64 {
-        let mut s = gen_hash(&self.content, &self.p_hash, Some(nonce));
-        let prefix = s.split_off(2);
-        if prefix.eq("00") {
+    fn mine_block(&self, nonce: i64, puzzle: &str, prefix: i64) -> i64 {
+        let mut s = solve_puzzle(&self.content, &self.p_hash, &self.hash, Some(nonce));
+        let _check = s.split_off(prefix.try_into().unwrap());
+        if s.eq(puzzle) {
             return nonce
         };
 
-        self.mine_block(nonce + 1)
+        self.mine_block(nonce + 1, puzzle, prefix)
     }
 
-    fn new_block(content: &str, p_hash: &str) -> Block {
+    fn get_hash(&self) -> &str {
+        &(self.hash)
+    }
+
+    fn new_block(content: &str, p_hash: &str, nonce: Option<i64>) -> Block {
         // will new block (unhashed)
         Block {
             content: String::from(content),
             p_hash: String::from(p_hash),
-            hash: gen_hash(&content, p_hash, None),
-            nonce: None,
+            hash: Block::gen_hash(content, p_hash, None),
+            nonce: nonce,
         }
     }
 
-    fn genesis_block(content: &str, p_hash: &str) -> Block {
-        Block {
-            content: String::from(content),
-            p_hash: String::from(p_hash),
-            hash: gen_hash(content, p_hash, None),
-            nonce: None,
-        }
+    fn gen_hash(content: &str, p_hash: &str, nonce: Option<i64>) -> String {
+        let the_nonce = match nonce {
+            Some(num) => num.to_string(),
+            None => String::from(""),
+        };
+        let s = String::from(content) + &String::from(p_hash) + &the_nonce;
+        
+        digest(s)
     }
 }
 
 fn main() {
-    // This is where everything will run
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 3 {
+        println!("You must run this program with the following command:\n\ncargo run <prefix: i64> <filename: String>\n\nPlease note that the filename should be in the form './filename' and should be present in the current directory. Run this program again with these arguments");
+        return;
+    }
+    let prefix = &args[1];
+    let filename = &args[2];
+
+    let prefix: i64 = match prefix.trim().parse() {
+        Ok(num) => num,
+        Err(_) => {
+            println!("You must enter a number for the prefix. The prefix is now automatically set to 2");
+            2
+        },
+    };
+
+    let mut puzzle = String::new();
+    let mut num = 0;
+    while num != prefix {
+        puzzle.push('0');
+        num += 1;
+    };
+
+    let puzzle = String::from(puzzle);
+ 
+    let mut blockchain: Vec<Block> = Vec::new();
+    let mut times: Vec<u128> = Vec::new();
+
+    let mut timer_total = DevTime::new_simple();
+    let mut timer_blocks = DevTime::new_simple();
+
+    timer_total.start();
+    if let Ok(lines) = read_lines(filename) {
+        let data = String::from("The genesis block");
+        let p_hash = String::from("00000000000000000000000000000000");
+        let gen_block = Block::new_block(&data, &p_hash, None);
+        blockchain.push(gen_block);
+        for line in lines {
+            if let Ok(content) = line {
+                timer_blocks.start();
+                let a_block = Block::new_block(&content, blockchain[blockchain.len()-1].get_hash(), None);
+                let val = a_block.mine_block(0, &puzzle, prefix);
+                let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), Some(val));
+                let validation = validate(&b_block, &puzzle, prefix);
+                if validation {
+                    blockchain.push(b_block);
+                } else {
+                    println!("Unable to validate the block: {:?}", b_block);
+                }
+                timer_blocks.stop();
+                times.push(timer_blocks.time_in_millis().unwrap());
+            }
+        }
+    } else {
+        println!("FILE ERROR:\n\nYou must enter a valid file name for your second commandline argument. Make sure your file is in the current directory and input it in the form ./filename\n\n");
+        return;
+    }
+    timer_total.stop();
+    let mut avg_time = 0;
+    let div: u128 = times.len().try_into().unwrap();
+    for time in times {
+        avg_time = avg_time + time;
+    }
+
+    avg_time = avg_time / div;
+
+    println!("{} {}\n", timer_total.time_in_millis().unwrap(), avg_time);
 }
 
-fn validate(block: &Block) -> bool {
-    // the main function (thread in multi) will run this to verify the nonce is correct
-    true
+fn validate(block: &Block, puzzle: &str, prefix: i64) -> bool {
+    let the_nonce = match block.nonce {
+        Some(num) => num,
+        None => {
+            return false
+        },
+    };
+    
+    if block.mine_block(0, puzzle, prefix) == the_nonce {
+        return true;
+    };
+    false
 }
 
-fn gen_hash(content: &str, p_hash: &str, nonce: Option<i64>) -> String {
+fn solve_puzzle(content: &str, p_hash: &str, hash: &str, nonce: Option<i64>) -> String {
     let the_nonce = match nonce {
         Some(num) => num.to_string(),
         None => String::from(""),
     };
-    let s = String::from(content) + &String::from(p_hash) + &the_nonce;
+    let s = String::from(content) + &String::from(p_hash) + &String::from(hash) + &the_nonce;
     
     digest(s)
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }

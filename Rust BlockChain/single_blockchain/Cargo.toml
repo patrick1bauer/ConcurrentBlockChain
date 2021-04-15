@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 sha256 = "1.0.0"
+devtimer = "*"
