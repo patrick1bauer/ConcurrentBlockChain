@@ -23,6 +23,7 @@ public:
     string previousHash;
     long timeStamp;
     int nonce;
+    bool foundHash;
 
     // Block constructor
     Block(string inputData, string inputPreviousHash, long inputTimeStamp)
@@ -32,6 +33,7 @@ public:
         this->timeStamp = inputTimeStamp;
         this->nonce = 0;
         this->hash = calculateBlockHash();
+        this->foundHash = false;
     }
 
     // Standard getters
@@ -64,6 +66,16 @@ public:
     void setHash()
     {
         this->hash = calculateBlockHash();
+    }
+
+    void setFoundHash(bool input)
+    {
+        this->foundHash = input;
+    }
+
+    void setHashThreaded(string input)
+    {
+        this->hash = input;
     }
 
     void setPreviousHash(string inputHash)
@@ -99,6 +111,31 @@ public:
         return hashedData;
     }
 
+    // Method to calculate block hash (Input parameters)
+    string calculateBlockHashThreaded(string prevHash, long timeS, int non, string da)
+    {
+        // Concatenate parts of the block to generate the hash
+        string dataToHash = prevHash + to_string(timeS) + to_string(non) + da;
+
+        // Calculate hash based on block's data
+        string hashedData = sha256(dataToHash);
+
+        // Return hashed data
+        return hashedData;
+    }
+
+    // Function that each thread runs
+    void threadMineBlock(int pre, string prefixS, int non)
+    {
+        string localHash = calculateBlockHashThreaded(this->previousHash, this->timeStamp, non, this->data);
+
+        if (localHash.substr(0, pre) == prefixS && this->foundHash == false)
+        {
+            this->setFoundHash(true);
+            this->setHashThreaded(localHash);
+        }
+    }
+
     // Method to mine a block
     void mineBlock(int prefix)
     {
@@ -109,13 +146,14 @@ public:
         int numThreads = thread::hardware_concurrency();
 
         // Find a hash smaller than our necessary target
-        while(this->hash.substr(0, prefix) != prefixString)
+        while(this->foundHash == false)
         {
             // Increment the nonce
             this->nonce = this->nonce + 1;
+            
+            // Create a thread to calculate hash
+            thread threadObject(&Block::threadMineBlock, this, prefix, prefixString, this->nonce);
 
-            // Calculate another block hash
-            this->hash = calculateBlockHash();
         }
 
         // Finished mining the block
