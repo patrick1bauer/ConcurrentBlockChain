@@ -154,8 +154,31 @@ class Block
 };
 
 // Main method
-int main()
+int main(int argc,char* argv[])
 {
+
+
+    // Get file path for input file
+    string filePath = "../gorgias.txt";
+    if (argv[1] != NULL)
+    {
+        filePath = argv[1];
+    }
+
+    // Get difficulty of block mining. Higher is harder (Default = 2)
+    int prefix = 2;
+    if (argv[2] != NULL)
+    {
+        prefix = atoi(argv[2]);
+    }
+
+    // Determine whether to output alldata or only test data (Default = test data only)
+    bool fullOutput = false;
+    if (argv[3] != NULL)
+    {
+        fullOutput = true;
+    }
+
     // Create a vector of block times
     vector<float> executionTimes;
 
@@ -165,12 +188,9 @@ int main()
     // Create blockchain (list of blocks)
     vector<Block> blockchain;
 
-    // Difficulty of block mining. Higher is harder
-    int prefix = 2;
-
     // Grab the first file line as data for the genesis block
     ifstream inputFile;
-    inputFile.open("../gorgias.txt", ios::in);
+    inputFile.open(filePath, ios::in);
     string data;
     if (inputFile.is_open())
     {
@@ -178,7 +198,10 @@ int main()
     }
     else
     {
-        cout << "[Error]: FILE IS NOT OPEN" << endl;
+        if (fullOutput)
+        {
+            cout << "[Error]: FILE IS NOT OPEN" << endl;
+        }
     }
 
     // Instantiate the genesis block
@@ -203,7 +226,10 @@ int main()
     // Add genesis block to the blockchain
     blockchain.push_back(genesisBlock);
 
-    cout << "Blockchain initialized" << endl << "Adding data blocks..." << endl;
+    if (fullOutput)
+    {
+        cout << "Blockchain initialized" << endl << "Adding data blocks..." << endl;
+    }
 
     // Continue adding blocks until we reach the end of the input file
     while(inputFile.peek() != EOF)
@@ -218,7 +244,10 @@ int main()
         }
         else
         {
-            cout << "[Error]: FILE IS NOT OPEN" << endl;
+            if (fullOutput)
+            {
+                cout << "[Error]: FILE IS NOT OPEN" << endl;
+            }
         }
 
         // Create a new block with our line of data.
@@ -257,7 +286,10 @@ int main()
 
     // Stop timer
     long stopBlockchain = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
-    cout << "All blocks added!" << endl << endl;
+    if (fullOutput)
+    {
+        cout << "All blocks added!" << endl << endl;
+    }
 
     // Calculate total execution time
     float durationBlockchain = (stopBlockchain - startBlockchain) / 1000.f;
@@ -267,18 +299,13 @@ int main()
     float averageBlockTime = 0;
     float fastestBlockTime = 100000000.0;
     float slowestBlockTime = 0.0;
-    ofstream executionTimeFile;
-    executionTimeFile.open("executionTimes.txt");
-    if (executionTimeFile.is_open())
+    for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
     {
-        for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
+        // Add execution time to sum
+        sum += executionTimes.at(dataEntryIndex);
+
+        if (fullOutput)
         {
-            // Write execution time to file
-            executionTimeFile << executionTimes.at(dataEntryIndex) << endl;
-
-            // Add execution time to sum
-            sum += executionTimes.at(dataEntryIndex);
-
             // Get fastest execution time
             if (executionTimes.at(dataEntryIndex) < fastestBlockTime)
             {
@@ -291,25 +318,25 @@ int main()
                 slowestBlockTime = executionTimes.at(dataEntryIndex);
             }
         }
+    }
 
-        // Calculate average
-        averageBlockTime = sum / (executionTimes.size());
+    // Calculate average
+    averageBlockTime = sum / (executionTimes.size());
+
+    // Display interesting data points.
+    if (fullOutput)
+    {
+        cout << "=================== Data ===================" << endl;
+        cout << setw(32) << left << "Number of blocks added:" << right << to_string(executionTimes.size()) << endl;
+        cout << setw(32) << left << "Total execution time:" << right << to_string(durationBlockchain) + " ms." << endl;
+        cout << setw(32) << left << "Average block execution time:" << right << to_string(averageBlockTime) + " ms." << endl;
+        cout << setw(32) << left << "Fastest block execution time:" << right << to_string(fastestBlockTime) + " ms." << endl;
+        cout << setw(32) << left << "Slowest block execution time:" << right << to_string(slowestBlockTime) + " ms." << endl;
     }
     else
     {
-        cout << "[Error]: FILE IS NOT OPEN" << endl;
+        cout << to_string(durationBlockchain) << " " << to_string(averageBlockTime) << endl;
     }
-
-    // Display interesting data points.
-    cout << "=================== Data ===================" << endl;
-    cout << setw(32) << left << "Number of blocks added:" << right << to_string(executionTimes.size()) << endl;
-    cout << setw(32) << left << "Total execution time:" << right << to_string(durationBlockchain) + " ms." << endl;
-    cout << setw(32) << left << "Average block execution time:" << right << to_string(averageBlockTime) + " ms." << endl;
-    cout << setw(32) << left << "Fastest block execution time:" << right << to_string(fastestBlockTime) + " ms." << endl;
-    cout << setw(32) << left << "Slowest block execution time:" << right << to_string(slowestBlockTime) + " ms." << endl;
-
-    // Print entire blockchain to txt file.
-    // cout << blockchain.front().getData() << endl;
 
     return 0;
 }
