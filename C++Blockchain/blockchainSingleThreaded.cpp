@@ -156,8 +156,6 @@ class Block
 // Main method
 int main(int argc,char* argv[])
 {
-
-
     // Get file path for input file
     string filePath = "../gorgias.txt";
     if (argv[1] != NULL)
