@@ -14,6 +14,7 @@ public class BlockchainMultiThreaded{
 	static int prefix = 1;
 	public volatile boolean nonceFound = false;
 	public int nonce; 
+	public int size = 0;
 	public int numThreads = 0;
 	public boolean checked = false;
 	public volatile boolean timeToCheck = false;
@@ -193,6 +194,7 @@ public class BlockchainMultiThreaded{
 			previousHash = newBlock.getHash();
 
 		}
+		chain.size = chain.blockchain.size() - 1;
 		for(int i = 0; i < chain.numThreads; i++)
 		{
 			computers.get(i).stop();
@@ -200,16 +202,16 @@ public class BlockchainMultiThreaded{
 
 		// Grab miminum time, maximum time, and total time
 		double totalTime = 0.0; 
-		for(Double time : times)
+		for(int i = 0; i < chain.size; i++)
 		{
-			totalTime += time;
-			if(shortestBlock > time)
+			totalTime += times.get(i);
+			if(shortestBlock > times.get(i))
 			{
-				shortestBlock = time;
+				shortestBlock = times.get(i);
 			}
-			if(longestBlock < time)
+			if(longestBlock < times.get(i))
 			{
-				longestBlock = time;
+				longestBlock = times.get(i);
 			}
 		}
 		System.out.println("Blockchain Complete");
@@ -343,9 +345,6 @@ class Block{
 		  valid = (previousHash.equals(blockchain.get(size - 1).hash))
 				&& (hash.equals(calculateBlockHash()))
 				&& (hash.startsWith(prefixString));
-			//System.out.println("prev hash  " + previousHash + " my prv hash" + blockchain.get(size - 1).hash);
-			//System.out.println("my hash  " + hash + " recalced hash" + calculateBlockHash());
-			//System.out.println("starting w prefix  " + hash.startsWith(prefixString));
 		}
 	
 		// Otherwise it MUST be the genesis block since the blockchain is empty
@@ -381,6 +380,7 @@ class Computer implements Runnable{
 	}
 
     public void stop() {
+		chain.size = chain.size - 2;
 		chainComplete = true;
 	}
 
@@ -461,6 +461,3 @@ class Computer implements Runnable{
 		this.currBlock = currentBlock;
 	}
 }
-
-
-
