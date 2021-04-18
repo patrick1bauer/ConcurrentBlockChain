@@ -84,7 +84,6 @@ public class BlockchainMultiThreaded{
 		// Validate our newly mined genesis block, using null as prev hash
 		while(!genesisBlock.validateBlock(chain.blockchain, prefix))
 		{
-			System.out.println("lol rip 1");
 			// Let the threads know the nonce has been checked and has not been found
 			chain.timeToCheck = false;
 			chain.nonceFound = false;
@@ -159,7 +158,6 @@ public class BlockchainMultiThreaded{
 			while(!newBlock.validateBlock(chain.blockchain, prefix))
 			{
 
-				System.out.println("lol rip" + newBlock.getNonce() + "  "+ newBlock.getHash() + " " + chain.threadWhoFound);
 				// Let the threads know the nonce has been checked and has not been found
 				chain.timeToCheck = false;
 				chain.nonceFound = false;
