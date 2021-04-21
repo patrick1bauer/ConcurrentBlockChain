@@ -5,11 +5,11 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::convert::TryInto;
 use devtimer::DevTime;
-use std::thread;
+use std::thread::Builder;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 
-static NTHREADS: i32 = 20;
+static NTHREADS: i32 = 12;
 
 #[derive(Debug)]
 struct Block {
@@ -98,14 +98,18 @@ fn main() {
                 let mut done = false;
                 let (tx, rx): (Sender<i64>, Receiver<i64>) = mpsc::channel();
                 let mut start_nonce = 0;
-                let mut children = Vec::new();
                 while !done {
+                    let mut children = Vec::new();
                     for n in start_nonce..start_nonce + NTHREADS {
                         let thread_tx = tx.clone();
                         let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), None);
-                        let child = thread::spawn(move || {
+                        let b = Builder::new();
+                        let child = b.spawn(move || {
                             let val = (&b_block).mine_block(n.into(), prefix);
                             thread_tx.send(val).unwrap();
+                        }).unwrap_or_else(|e| {
+                            println!("{}: {}", n, e);
+                            std::process::exit(1);
                         });
                         children.push(child);
                     }
@@ -114,6 +118,10 @@ fn main() {
                         // The `recv` method picks a message from the channel
                         // `recv` will block the current thread if there are no messages available
                         nonces.push(rx.recv());
+                    }
+
+                    for child in children {
+                        child.join().unwrap();
                     }
                     
                     for x in nonces {
