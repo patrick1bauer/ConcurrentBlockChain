@@ -106,39 +106,32 @@ fn main() {
                         let b = Builder::new();
                         let child = b.spawn(move || {
                             let val = (&b_block).mine_block(n.into(), prefix);
-                            thread_tx.send(val).unwrap();
+                            if val > 0 {
+                                thread_tx.send(val).unwrap();
+                                return;
+                            }
                         }).unwrap_or_else(|e| {
                             println!("{}: {}", n, e);
                             std::process::exit(1);
                         });
                         children.push(child);
                     }
-                    let mut nonces = Vec::with_capacity(NTHREADS as usize);
-                    for _ in 0..NTHREADS {
-                        // The `recv` method picks a message from the channel
-                        // `recv` will block the current thread if there are no messages available
-                        nonces.push(rx.recv());
+                    let the_nonce = rx.try_recv();
+                    let val = match the_nonce {
+                        Ok(num) => num,
+                        Err(_) => -1,
+                    };
+
+                    if val > 0 {
+                        blockchain.push(Block::new_block(&(a_block.content), &(a_block.p_hash), None));
+                        done = true;
                     }
+                    
+                    start_nonce += NTHREADS;
 
                     for child in children {
                         child.join().unwrap();
                     }
-                    
-                    for x in nonces {
-                        let val = match x {
-                            Ok(num) => num,
-                            Err(_) => { 
-                                println!("There was an error parsing the messages from the threads. Check line 122");
-                                -1
-                            },
-                        };
-
-                        if val > 0 {
-                            blockchain.push(Block::new_block(&(a_block.content), &(a_block.p_hash), None));
-                            done = true;
-                        }
-                    }
-                    start_nonce += NTHREADS;
                 }
                 timer_blocks.stop();
                 times.push(timer_blocks.time_in_millis().unwrap());
