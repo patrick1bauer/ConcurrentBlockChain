@@ -5,9 +5,11 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::convert::TryInto;
 use devtimer::DevTime;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 struct Block {
+    time_stamp: String,
     content: String,
     p_hash: String,
     hash: String,
@@ -16,13 +18,12 @@ struct Block {
 
 impl Block {
     fn mine_block(&self, nonce: i64, puzzle: &str, prefix: i64) -> i64 {
-        let mut s = solve_puzzle(&self.content, &self.p_hash, &self.hash, Some(nonce));
+        let mut s = solve_puzzle(&self.time_stamp, &self.content, &self.p_hash, &self.hash, Some(nonce));
         let _check = s.split_off(prefix.try_into().unwrap());
         if s.eq(puzzle) {
             return nonce
         };
-
-        self.mine_block(nonce + 1, puzzle, prefix)
+        -1
     }
 
     fn get_hash(&self) -> &str {
@@ -30,21 +31,25 @@ impl Block {
     }
 
     fn new_block(content: &str, p_hash: &str, nonce: Option<i64>) -> Block {
-        // will new block (unhashed)
+        let time_stamp = String::from(match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(n) => n.as_secs().to_string(),
+            Err(_) => "Error".to_string(),
+        });
         Block {
+            time_stamp: String::from(&time_stamp),
             content: String::from(content),
             p_hash: String::from(p_hash),
-            hash: Block::gen_hash(content, p_hash, None),
+            hash: Block::gen_hash(&time_stamp, content, p_hash, None),
             nonce: nonce,
         }
     }
 
-    fn gen_hash(content: &str, p_hash: &str, nonce: Option<i64>) -> String {
+    fn gen_hash(time_stamp: &str, content: &str, p_hash: &str, nonce: Option<i64>) -> String {
         let the_nonce = match nonce {
             Some(num) => num.to_string(),
             None => String::from(""),
         };
-        let s = String::from(content) + &String::from(p_hash) + &the_nonce;
+        let s = String::from(content) + &String::from(time_stamp) + &String::from(p_hash) + &the_nonce;
         
         digest(s)
     }
@@ -88,21 +93,33 @@ fn main() {
         let p_hash = String::from("00000000000000000000000000000000");
         let gen_block = Block::new_block(&data, &p_hash, None);
         blockchain.push(gen_block);
+        let mut index = 0;
         for line in lines {
             if let Ok(content) = line {
                 timer_blocks.start();
-                let a_block = Block::new_block(&content, blockchain[blockchain.len()-1].get_hash(), None);
-                let val = a_block.mine_block(0, &puzzle, prefix);
-                let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), Some(val));
-                let validation = validate(&b_block, &puzzle, prefix);
-                if validation {
-                    blockchain.push(b_block);
-                } else {
-                    println!("Unable to validate the block: {:?}", b_block);
+                let mut done = false;
+                while !done {
+                    let mut i: i64 = 0;
+                    let a_block = Block::new_block(&content, Block::new_block(&(blockchain[blockchain.len()-1].content), &(blockchain[blockchain.len()-1].p_hash), None).get_hash(), None);
+                    while i < i64::MAX {
+                        let val = a_block.mine_block(i, &puzzle, prefix);
+                        if val > 0 {
+                            let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), None);
+                            blockchain.push(b_block);
+                            done = true;
+                            break;
+                        } else {
+                            i += 1;
+                        }
+                    }
+                    if i < i64::MAX {
+                        done = true;
+                    }
                 }
                 timer_blocks.stop();
                 times.push(timer_blocks.time_in_millis().unwrap());
             }
+            index += 1;
         }
     } else {
         println!("FILE ERROR:\n\nYou must enter a valid file name for your second commandline argument. Make sure your file is in the current directory and input it in the form ./filename\n\n");
@@ -120,26 +137,12 @@ fn main() {
     println!("{} {}\n", timer_total.time_in_millis().unwrap(), avg_time);
 }
 
-fn validate(block: &Block, puzzle: &str, prefix: i64) -> bool {
-    let the_nonce = match block.nonce {
-        Some(num) => num,
-        None => {
-            return false
-        },
-    };
-    
-    if block.mine_block(0, puzzle, prefix) == the_nonce {
-        return true;
-    };
-    false
-}
-
-fn solve_puzzle(content: &str, p_hash: &str, hash: &str, nonce: Option<i64>) -> String {
+fn solve_puzzle(time_stamp: &str, content: &str, p_hash: &str, hash: &str, nonce: Option<i64>) -> String {
     let the_nonce = match nonce {
         Some(num) => num.to_string(),
         None => String::from(""),
     };
-    let s = String::from(content) + &String::from(p_hash) + &String::from(hash) + &the_nonce;
+    let s = String::from(content) + &String::from(time_stamp) + &String::from(p_hash) + &String::from(hash) + &the_nonce;
     
     digest(s)
 }

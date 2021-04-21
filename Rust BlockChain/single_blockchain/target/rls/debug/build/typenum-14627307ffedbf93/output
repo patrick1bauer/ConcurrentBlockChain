@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/home/stacey/cop4520/ConcurrentBlockChain/Rust BlockChain/single_blockchain/target/rls/debug/build/typenum-14627307ffedbf93/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/home/stacey/cop4520/ConcurrentBlockChain/Rust BlockChain/single_blockchain/target/rls/debug/build/typenum-14627307ffedbf93/out/op.rs

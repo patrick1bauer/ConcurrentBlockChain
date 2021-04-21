@@ -9,7 +9,7 @@ use std::thread::Builder;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 
-static NTHREADS: i32 = 12;
+static NTHREADS: u32 = 20;
 
 #[derive(Debug)]
 struct Block {
