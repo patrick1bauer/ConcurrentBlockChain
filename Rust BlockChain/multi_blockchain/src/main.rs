@@ -4,12 +4,16 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::convert::TryInto;
-use devtimer::DevTime;
 use std::thread::Builder;
+use std::thread;
+use std::time::Instant;
+use std::time::Duration;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+use rand::Rng;
 
-static NTHREADS: u32 = 20;
+static NTHREADS: u32 = 4;
 
 #[derive(Debug)]
 struct Block {
@@ -80,12 +84,10 @@ fn main() {
     };
  
     let mut blockchain: Vec<Block> = Vec::new();
-    let mut times: Vec<u128> = Vec::new();
+    let mut times: Vec<f64> = Vec::new();
 
-    let mut timer_total = DevTime::new_simple();
-    let mut timer_blocks = DevTime::new_simple();
+    let timer_total = Instant::now();
 
-    timer_total.start();
     if let Ok(lines) = read_lines(filename) {
         let data = String::from("The genesis block");
         let p_hash = String::from("00000000000000000000000000000000");
@@ -93,64 +95,71 @@ fn main() {
         blockchain.push(gen_block);
         for line in lines {
             if let Ok(content) = line {
-                timer_blocks.start();
+                let timer_block = Instant::now();
                 let a_block = Block::new_block(&content, Block::new_block(&(blockchain[blockchain.len()-1].content), &(blockchain[blockchain.len()-1].p_hash), None).get_hash(), None);
-                let mut done = false;
                 let (tx, rx): (Sender<i64>, Receiver<i64>) = mpsc::channel();
-                let mut start_nonce = 0;
-                while !done {
-                    let mut children = Vec::new();
-                    for n in start_nonce..start_nonce + NTHREADS {
-                        let thread_tx = tx.clone();
-                        let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), None);
-                        let b = Builder::new();
-                        let child = b.spawn(move || {
+                let nonce = Arc::new(Mutex::new(0));
+                for i in 0..NTHREADS {
+                    let (t_nonce, tx) = (Arc::clone(&nonce), tx.clone());
+                    let b_block = Block::new_block(&(a_block.content), &(a_block.p_hash), None);
+                    let b = Builder::new();
+                    let _ = b.spawn(move || {
+                        loop {
+                            let mut random = rand::thread_rng();
+                            let n;
+                            let mut lock = t_nonce.try_lock();
+                            if let Ok(ref mut nonce) = lock {
+                                if **nonce < 0 {
+                                    return;
+                                }
+                                **nonce += 1;
+                                n = **nonce;
+                                drop(nonce);
+                            } else {
+                                thread::sleep(Duration::from_millis(random.gen_range(1, 101)));
+                                continue;
+                            }
+                            
                             let val = (&b_block).mine_block(n.into(), prefix);
                             if val > 0 {
-                                thread_tx.send(val).unwrap();
+                                tx.send(val).unwrap();
                                 return;
                             }
-                        }).unwrap_or_else(|e| {
-                            println!("{}: {}", n, e);
-                            std::process::exit(1);
-                        });
-                        children.push(child);
-                    }
-                    let the_nonce = rx.try_recv();
-                    let val = match the_nonce {
-                        Ok(num) => num,
-                        Err(_) => -1,
-                    };
-
-                    if val > 0 {
-                        blockchain.push(Block::new_block(&(a_block.content), &(a_block.p_hash), None));
-                        done = true;
-                    }
-                    
-                    start_nonce += NTHREADS;
-
-                    for child in children {
-                        child.join().unwrap();
-                    }
+                        }
+                    }).unwrap_or_else(|e| {
+                        println!("{}: {}", i, e);
+                        std::process::exit(1);
+                    });
                 }
-                timer_blocks.stop();
-                times.push(timer_blocks.time_in_millis().unwrap());
+                let the_nonce = rx.recv();
+                let val = match the_nonce {
+                    Ok(num) => num,
+                    Err(_) => -1,
+                };
+
+                if val > 0 {
+                    blockchain.push(Block::new_block(&(a_block.content), &(a_block.p_hash), None));
+                    let mut nonce = nonce.lock().unwrap();
+                    *nonce = -1;
+                }
+                let block_time = (timer_block.elapsed().as_micros() as f64) / 1000.0;
+                times.push(block_time);
             }
         }
     } else {
         println!("FILE ERROR:\n\nYou must enter a valid file name for your second commandline argument. Make sure your file is in the current directory and input it in the form ./filename\n\n");
         return;
     }
-    timer_total.stop();
-    let mut avg_time = 0;
-    let div: u128 = times.len().try_into().unwrap();
+    let total_time = (timer_total.elapsed().as_micros() as f64) / 1000.0;
+    let mut avg_time = 0.0;
+    let div = times.len() as f64;
     for time in times {
         avg_time = avg_time + time;
     }
 
     avg_time = avg_time / div;
 
-    println!("{} {}\n", timer_total.time_in_millis().unwrap(), avg_time);
+    println!("{:.6} {:.6}\n", total_time, avg_time);
 }
 
 fn solve_puzzle(content: &str, p_hash: &str, hash: &str, nonce: Option<i64>) -> String {
