@@ -156,16 +156,26 @@ class Block
 // Main method
 int main(int argc,char* argv[])
 {
-    bool fullOutput = false;
-    if (argc > 1)
+    // Get file path for input file
+    string filePath = "../gorgias.txt";
+    if (argv[1] != NULL)
     {
-        if (*argv[1] == 't')
-        {
-            fullOutput = true;
-        }
+        filePath = argv[1];
     }
 
+    // Get difficulty of block mining. Higher is harder (Default = 2)
+    int prefix = 2;
+    if (argv[2] != NULL)
+    {
+        prefix = atoi(argv[2]);
+    }
 
+    // Determine whether to output alldata or only test data (Default = test data only)
+    bool fullOutput = false;
+    if (argv[3] != NULL)
+    {
+        fullOutput = true;
+    }
 
     // Create a vector of block times
     vector<float> executionTimes;
@@ -176,12 +186,9 @@ int main(int argc,char* argv[])
     // Create blockchain (list of blocks)
     vector<Block> blockchain;
 
-    // Difficulty of block mining. Higher is harder
-    int prefix = 2;
-
     // Grab the first file line as data for the genesis block
     ifstream inputFile;
-    inputFile.open("../gorgias.txt", ios::in);
+    inputFile.open(filePath, ios::in);
     string data;
     if (inputFile.is_open())
     {
@@ -290,18 +297,13 @@ int main(int argc,char* argv[])
     float averageBlockTime = 0;
     float fastestBlockTime = 100000000.0;
     float slowestBlockTime = 0.0;
-    ofstream executionTimeFile;
-    executionTimeFile.open("executionTimes.txt");
-    if (executionTimeFile.is_open())
+    for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
     {
-        for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
+        // Add execution time to sum
+        sum += executionTimes.at(dataEntryIndex);
+
+        if (fullOutput)
         {
-            // Write execution time to file
-            executionTimeFile << executionTimes.at(dataEntryIndex) << endl;
-
-            // Add execution time to sum
-            sum += executionTimes.at(dataEntryIndex);
-
             // Get fastest execution time
             if (executionTimes.at(dataEntryIndex) < fastestBlockTime)
             {
@@ -314,17 +316,10 @@ int main(int argc,char* argv[])
                 slowestBlockTime = executionTimes.at(dataEntryIndex);
             }
         }
+    }
 
-        // Calculate average
-        averageBlockTime = sum / (executionTimes.size());
-    }
-    else
-    {
-        if (fullOutput)
-        {
-            cout << "[Error]: FILE IS NOT OPEN" << endl;
-        }
-    }
+    // Calculate average
+    averageBlockTime = sum / (executionTimes.size());
 
     // Display interesting data points.
     if (fullOutput)
@@ -340,9 +335,6 @@ int main(int argc,char* argv[])
     {
         cout << to_string(durationBlockchain) << " " << to_string(averageBlockTime) << endl;
     }
-
-    // Print entire blockchain to txt file.
-    // cout << blockchain.front().getData() << endl;
 
     return 0;
 }

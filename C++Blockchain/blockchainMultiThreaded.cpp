@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include <iterator>
 #include <chrono>
 #include <ctime>
@@ -12,6 +13,17 @@
 
 // Namespaces
 using namespace std;
+
+// Lock
+mutex nonceLock;
+int tempNonce = 0;
+
+int getAndIncrementNonce()
+{
+    int currentNonce = tempNonce;
+    tempNonce = currentNonce + 1;
+    return currentNonce;
+}
 
 // Block class
 class Block
@@ -40,6 +52,11 @@ public:
     string getHash()
     {
         return this->hash;
+    }
+
+    bool getFoundHash()
+    {
+        return this->foundHash;
     }
 
     string getPreviousHash()
@@ -125,35 +142,60 @@ public:
     }
 
     // Function that each thread runs
-    void threadMineBlock(int pre, string prefixS, int non)
+    void threadMineBlock(int threadID, int prefix)
     {
-        string localHash = calculateBlockHashThreaded(this->previousHash, this->timeStamp, non, this->data);
+        // Prefix to look for in hash
+        string prefixString(prefix, '0');
 
-        if (localHash.substr(0, pre) == prefixS && this->foundHash == false)
+        // Search for hash with pre-determined prefix
+        int i = 0;
+        while(this->getFoundHash() == false)
         {
-            this->setFoundHash(true);
-            this->setHashThreaded(localHash);
+            // Get nonce
+            nonceLock.lock();
+            int localNonce = getAndIncrementNonce();
+            nonceLock.unlock();
+
+            // Calculate new hash
+            string localHash = calculateBlockHashThreaded(this->previousHash, this->timeStamp, localNonce, this->data);
+
+            // Check if hash contains the prefix
+            if (localHash.substr(0, prefix) == prefixString && this->foundHash == false)
+            {
+                this->setFoundHash(true);
+                this->setHashThreaded(localHash);
+                this->setNonce(localNonce);
+            }
         }
     }
 
     // Method to mine a block
     void mineBlock(int prefix)
     {
-        // Define the prefix we want to find
-        string prefixString(prefix, '0');
-
         // Get maximum number of threads the system can support
         int numThreads = thread::hardware_concurrency();
 
-        // Find a hash smaller than our necessary target
-        while(this->foundHash == false)
+        // Create threads to mine block
+        vector<thread> vecOfThreads;
+        this->setFoundHash(false);
+        tempNonce = 0;
+        for (int i = 0; i < numThreads; i++)
         {
-            // Increment the nonce
-            this->nonce = this->nonce + 1;
-            
-            // Create a thread to calculate hash
-            thread threadObject(&Block::threadMineBlock, this, prefix, prefixString, this->nonce);
+            thread threadObject(&Block::threadMineBlock, this, i, prefix);
+            vecOfThreads.push_back(move(threadObject));
+        }
 
+        // wait for block to be mined
+        while (foundHash == false)
+        {
+        }
+
+        for (thread & th : vecOfThreads)
+        {
+            if (th.joinable())
+            {
+                th.join();
+            }
         }
 
         // Finished mining the block
@@ -176,16 +218,18 @@ public:
         if(size >= 1)
         {
             // Validate the previous hash, hash and prefix
-            bool previousHashValid = this->previousHash == blockchain.at(size - 1).hash;
-            bool hashValid = this->hash == calculateBlockHash();
+            bool previousHashValid = this->getPreviousHash() == blockchain.at(size - 1).hash;
+            bool hashValid = this->hash == calculateBlockHashThreaded(this->getPreviousHash(), this->getTimeStamp(), this->getNonce(), this->getData());
+            // bool hashValid = this->hash == calculateBlockHash();
             valid = previousHashValid && hashValid;
         }
             // Otherwise it MUST be the genesis block since the blockchain is empty
         else
         {
             string emptyHash = "0000000000000000000000000000000000000000000000000000000000000000";
-            bool previousHashValid = this->previousHash == emptyHash;
-            bool hashValid = this->hash == calculateBlockHash();
+            bool previousHashValid = this->getPreviousHash() == emptyHash;
+            bool hashValid = this->hash == calculateBlockHashThreaded(this->getPreviousHash(), this->getTimeStamp(), this->getNonce(), this->getData());
+            // bool hashValid = this->hash == calculateBlockHash();
             valid = previousHashValid && hashValid;
         }
 
@@ -198,6 +242,27 @@ private:
 // Main method
 int main(int argc, char *argv[])
 {
+    // Get file path for input file
+    string filePath = "../gorgias.txt";
+    if (argv[1] != NULL)
+    {
+        filePath = argv[1];
+    }
+
+    // Get difficulty of block mining. Higher is harder (Default = 2)
+    int prefix = 2;
+    if (argv[2] != NULL)
+    {
+        prefix = atoi(argv[2]);
+    }
+
+    // Determine whether to output alldata or only test data (Default = test data only)
+    bool fullOutput = false;
+    if (argv[3] != NULL)
+    {
+        fullOutput = true;
+    }
+
     // Create a vector of block times
     vector<float> executionTimes;
 
@@ -207,12 +272,9 @@ int main(int argc, char *argv[])
     // Create blockchain (list of blocks)
     vector<Block> blockchain;
 
-    // Difficulty of block mining. Higher is harder
-    int prefix = 2;
-
     // Grab the first file line as data for the genesis block
     ifstream inputFile;
-    inputFile.open("./gorgias.txt", ios::in);
+    inputFile.open(filePath, ios::in);
     string data;
     if (inputFile.is_open())
     {
@@ -220,7 +282,10 @@ int main(int argc, char *argv[])
     }
     else
     {
-        cout << "[Error]: FILE IS NOT OPEN" << endl;
+        if (fullOutput)
+        {
+            cout << "[Error]: FILE IS NOT OPEN 223" << endl;
+        }
     }
 
     // Instantiate the genesis block
@@ -228,8 +293,18 @@ int main(int argc, char *argv[])
     string emptyHash = "0000000000000000000000000000000000000000000000000000000000000000";
     Block genesisBlock(data, emptyHash, currentDate);
 
+    if (fullOutput)
+    {
+        cout << "Creating genesis block" << endl;
+    }
+
     // Mine the genesis block to create the hash for the next block.
     genesisBlock.mineBlock(prefix);
+
+    if (fullOutput)
+    {
+        cout << "Validating genesis block" << endl;
+    }
 
     // Validate our newly mined genesis block, using null as prev hash.
     while(!genesisBlock.validateBlock(blockchain, prefix))
@@ -245,7 +320,10 @@ int main(int argc, char *argv[])
     // Add genesis block to the blockchain
     blockchain.push_back(genesisBlock);
 
-    cout << "Blockchain initialized" << endl << "Adding data blocks..." << endl;
+    if (fullOutput)
+    {
+        cout << "Blockchain initialized" << endl << "Adding data blocks..." << endl;
+    }
 
     // Continue adding blocks until we reach the end of the input file
     while(inputFile.peek() != EOF)
@@ -260,7 +338,10 @@ int main(int argc, char *argv[])
         }
         else
         {
-            cout << "[Error]: FILE IS NOT OPEN" << endl;
+            if (fullOutput)
+            {
+                cout << "[Error]: FILE IS NOT OPEN" << endl;
+            }
         }
 
         // Create a new block with our line of data.
@@ -299,7 +380,10 @@ int main(int argc, char *argv[])
 
     // Stop timer
     long stopBlockchain = (chrono::duration_cast<chrono::microseconds>((chrono::time_point_cast<chrono::microseconds>(chrono::system_clock::now())).time_since_epoch())).count();
-    cout << "All blocks added!" << endl << endl;
+    if (fullOutput)
+    {
+        cout << "All blocks added!" << endl << endl;
+    }
 
     // Calculate total execution time
     float durationBlockchain = (stopBlockchain - startBlockchain) / 1000.f;
@@ -309,49 +393,43 @@ int main(int argc, char *argv[])
     float averageBlockTime = 0;
     float fastestBlockTime = 100000000.0;
     float slowestBlockTime = 0.0;
-    ofstream executionTimeFile;
-    executionTimeFile.open("executionTimes.txt");
-    if (executionTimeFile.is_open())
+
+    for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
     {
-        for (int dataEntryIndex = 0; dataEntryIndex < executionTimes.size(); dataEntryIndex++)
+
+        // Add execution time to sum
+        sum += executionTimes.at(dataEntryIndex);
+
+        // Get fastest execution time
+        if (executionTimes.at(dataEntryIndex) < fastestBlockTime)
         {
-            // Write execution time to file
-            executionTimeFile << executionTimes.at(dataEntryIndex) << endl;
-
-            // Add execution time to sum
-            sum += executionTimes.at(dataEntryIndex);
-
-            // Get fastest execution time
-            if (executionTimes.at(dataEntryIndex) < fastestBlockTime)
-            {
-                fastestBlockTime = executionTimes.at(dataEntryIndex);
-            }
-
-            // Get slowest execution time
-            if (executionTimes.at(dataEntryIndex) > slowestBlockTime)
-            {
-                slowestBlockTime = executionTimes.at(dataEntryIndex);
-            }
+            fastestBlockTime = executionTimes.at(dataEntryIndex);
         }
 
-        // Calculate average
-        averageBlockTime = sum / (executionTimes.size());
+        // Get slowest execution time
+        if (executionTimes.at(dataEntryIndex) > slowestBlockTime)
+        {
+            slowestBlockTime = executionTimes.at(dataEntryIndex);
+        }
+    }
+
+    // Calculate average
+    averageBlockTime = sum / (executionTimes.size());
+
+    // Display interesting data points.
+    if (fullOutput)
+    {
+        cout << "=================== Data ===================" << endl;
+        cout << setw(32) << left << "Number of blocks added:" << right << to_string(executionTimes.size()) << endl;
+        cout << setw(32) << left << "Total execution time:" << right << to_string(durationBlockchain) + " ms." << endl;
+        cout << setw(32) << left << "Average block execution time:" << right << to_string(averageBlockTime) + " ms." << endl;
+        cout << setw(32) << left << "Fastest block execution time:" << right << to_string(fastestBlockTime) + " ms." << endl;
+        cout << setw(32) << left << "Slowest block execution time:" << right << to_string(slowestBlockTime) + " ms." << endl;
     }
     else
     {
-        cout << "[Error]: FILE IS NOT OPEN" << endl;
+        cout << durationBlockchain << " " << averageBlockTime << endl;
     }
-
-    // Display interesting data points.
-    cout << "=================== Data ===================" << endl;
-    cout << setw(32) << left << "Number of blocks added:" << right << to_string(executionTimes.size()) << endl;
-    cout << setw(32) << left << "Total execution time:" << right << to_string(durationBlockchain) + " ms." << endl;
-    cout << setw(32) << left << "Average block execution time:" << right << to_string(averageBlockTime) + " ms." << endl;
-    cout << setw(32) << left << "Fastest block execution time:" << right << to_string(fastestBlockTime) + " ms." << endl;
-    cout << setw(32) << left << "Slowest block execution time:" << right << to_string(slowestBlockTime) + " ms." << endl;
-
-    // Print entire blockchain to txt file.
-    // cout << blockchain.front().getData() << endl;
 
     return 0;
 }
