@@ -10,10 +10,9 @@ import java.util.List;
 // blockchain class
 public class BlockchainMultiThreaded{
 	public List<Block> blockchain = new ArrayList<>();
-    // Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
-	static int prefix = 1;
+   	// Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
+	static int prefix = 2;
 	public volatile boolean nonceFound = false;
-	public int nonce; 
 	public int size = 0;
 	public int numThreads = 0;
 	public boolean checked = false;
@@ -66,7 +65,9 @@ public class BlockchainMultiThreaded{
         {
 			Computer computer = new Computer(i+1, chain, prefix);
             computers.add(computer);
+			genesisBlock.setNonce(i);
 			computers.get(i).setBlock(genesisBlock);
+			computers.get(i).nonce = i;
 			thread = new Thread(computer);
 			threads.add(thread);
             thread.start();
@@ -90,13 +91,13 @@ public class BlockchainMultiThreaded{
 			chain.nonceFound = false;
 
 			// If our validation fails retry mining after resetting values
-			genesisBlock.setNonce(0);
 			genesisBlock.setTimeStamp(new Date().getTime());
-			chain.nonce = 0;
 			for(int i = 0; i < chain.numThreads; i++)
 			{
 				// Reset all necessary values
+				genesisBlock.setNonce(i);
 				computers.get(i).setBlock(genesisBlock);
+				computers.get(i).nonce = i;
 				computers.get(i).prefix = prefix;
 			}
 
@@ -133,12 +134,13 @@ public class BlockchainMultiThreaded{
 			startBlock = System.nanoTime();
 			// Create a new block with our line of data
 			Block newBlock = new Block(data, previousHash, new Date().getTime());
-			chain.nonce = 0;
 			// Give all threads our new block
 			for(int i = 0; i < chain.numThreads; i++)
 			{
 				// Reset all necessary values
+				newBlock.setNonce(i);
 				computers.get(i).setBlock(newBlock);
+				computers.get(i).nonce = i;
 				computers.get(i).prefix = prefix;
 			}
 			chain.nonceFound = false;
@@ -158,7 +160,6 @@ public class BlockchainMultiThreaded{
 			
 			while(!newBlock.validateBlock(chain.blockchain, prefix))
 			{
-
 				// Let the threads know the nonce has been checked and has not been found
 				chain.timeToCheck = false;
 				chain.nonceFound = false;
@@ -166,11 +167,12 @@ public class BlockchainMultiThreaded{
 				// If our validation fails retry mining after resetting values
 				newBlock.setNonce(0);
 				newBlock.setTimeStamp(new Date().getTime());
-				chain.nonce = 0;
 				for(int i = 0; i < chain.numThreads; i++)
 				{
 					// Reset all necessary values
+					newBlock.setNonce(i);
 					computers.get(i).setBlock(newBlock);
+					computers.get(i).nonce = i;
 					computers.get(i).prefix = prefix;
 				}
 
@@ -224,12 +226,6 @@ public class BlockchainMultiThreaded{
 		in.close();
 
 	}
-
-    public synchronized int getNonce() {
-        int temp = nonce;
-        nonce = nonce + 1;
-        return temp;
-    }
 
 	public synchronized void setBlockAndStop(int ID) {
 		threadWhoFound = ID;
@@ -364,7 +360,6 @@ class Block{
 class Computer implements Runnable{
     
 	public boolean chainComplete = false;
-
 	public Block currBlock;
     public int ID;
 	private BlockchainMultiThreaded chain;
@@ -379,11 +374,6 @@ class Computer implements Runnable{
         this.prefix = prefix;
 	}
 
-    public void stop() {
-		chain.size = chain.size - 2;
-		chainComplete = true;
-	}
-
     public void run()
 	{
 		while(!chainComplete)
@@ -391,7 +381,7 @@ class Computer implements Runnable{
 			// Wait until it is time to calculate a hash
 			if(chain.timeToCalc)
 			{
-                mineBlock(prefix);
+                mineBlock(prefix, chain.numThreads);
                 if(!chain.nonceFound)
                 {
 					chain.setBlockAndStop(ID);
@@ -401,21 +391,19 @@ class Computer implements Runnable{
                     return;
                 }
 			}
-            else
-            {
-
-            }
 		}
 	
     }
 
-	
+	public void stop() {	
+		chain.size = chain.size - 2;
+		chainComplete = true;
+	}
 
     // Method to mine a block
-	public void mineBlock(int prefix){
+	public void mineBlock(int prefix, int numThreads){
 		// Define the prefix we want to find
 		String prefixString = new String(new char[prefix]).replace('\0', '0');
-        nonce = chain.getNonce();
 		// Until we find a hash beginning with the correct prefix, meaning we have found a hash smaller than our necessary target
 		while(!calculateBlockHash().substring(0, prefix).equals(prefixString)){
 			if(chain.nonceFound)
@@ -423,7 +411,7 @@ class Computer implements Runnable{
 				return;
 			}
 			// Grab the next nonce
-            nonce = chain.getNonce();
+            nonce = nonce + numThreads;
 			// Calculate another block hash
     	}
 
