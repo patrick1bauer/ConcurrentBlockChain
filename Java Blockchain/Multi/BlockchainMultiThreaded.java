@@ -11,36 +11,25 @@ import java.util.List;
 public class BlockchainMultiThreaded{
 	public List<Block> blockchain = new ArrayList<>();
    	// Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
-	static int prefix = 2;
+	static int prefix;
 	public volatile boolean nonceFound = false;
 	public int size = 0;
-	public int numThreads = 0;
+	public int numThreads = 4;
 	public boolean checked = false;
 	public volatile boolean timeToCheck = false;
 	public volatile boolean timeToCalc = false;
 	public volatile int threadWhoFound = -1;
+	public int nonce;
 
 
 	// main method
 	public static void main(String[] args) {
 		BlockchainMultiThreaded chain = new BlockchainMultiThreaded();
+		prefix = Integer.parseInt(args[0]);
 
-		if (args.length > 0) {
-			try {
-				chain.numThreads = Integer.parseInt(args[0]);
-				//System.out.println("Num of threads " + chain.numThreads);
-			} 
-			catch (NumberFormatException e) 
-			{
-			}
-		}
-		else
-		{
-			chain.numThreads = 2;
-		}
 
 		// Print to screen creation of genesis block
-		System.out.println("creating genesis block...");
+		//System.out.println("creating genesis block...");
 
 		Scanner in = new Scanner(System.in);
 		String data = null;
@@ -73,6 +62,7 @@ public class BlockchainMultiThreaded{
             thread.start();
         }
 		startBlock = System.nanoTime();
+
 		// Tell each thread to start calculating
 		chain.timeToCalc = true;
 		// Wait until we have possibly found the hash
@@ -82,7 +72,7 @@ public class BlockchainMultiThreaded{
 
 		genesisBlock.setNonce(computers.get(chain.threadWhoFound - 1).nonce);
 		genesisBlock.setHash();
-		
+
 		// Validate our newly mined genesis block, using null as prev hash
 		while(!genesisBlock.validateBlock(chain.blockchain, prefix))
 		{
@@ -196,7 +186,7 @@ public class BlockchainMultiThreaded{
 			previousHash = newBlock.getHash();
 
 		}
-		chain.size = chain.blockchain.size() - 1;
+		chain.size = chain.blockchain.size();
 		for(int i = 0; i < chain.numThreads; i++)
 		{
 			computers.get(i).stop();
@@ -204,7 +194,7 @@ public class BlockchainMultiThreaded{
 
 		// Grab miminum time, maximum time, and total time
 		double totalTime = 0.0; 
-		for(int i = 0; i < chain.size; i++)
+		for(int i = 0; i < chain.size -1 ; i++)
 		{
 			totalTime += times.get(i);
 			if(shortestBlock > times.get(i))
@@ -216,6 +206,7 @@ public class BlockchainMultiThreaded{
 				longestBlock = times.get(i);
 			}
 		}
+
 		System.out.println("Blockchain Complete");
 		System.out.println("Number of blocks added: " + chain.blockchain.size());
 		System.out.println("Total execution time: " + String.format("%.4f",totalTime/ 1000000.00000)+ " ms.");
@@ -227,11 +218,12 @@ public class BlockchainMultiThreaded{
 
 	}
 
-	public synchronized void setBlockAndStop(int ID) {
+	public synchronized void setBlockAndStop(int ID, int nonce) {
 		threadWhoFound = ID;
         timeToCheck = true;
 		timeToCalc = false;
 		nonceFound = true;
+		this.nonce = nonce;
     }
 
 }
@@ -364,14 +356,14 @@ class Computer implements Runnable{
     public int ID;
 	private BlockchainMultiThreaded chain;
     public int nonce;
-    
-
     public int prefix;
+	public int numThreads;
 
     public Computer(int ID, BlockchainMultiThreaded chain, int prefix) {
 		this.ID = ID;
 		this.chain = chain;
         this.prefix = prefix;
+		numThreads = chain.numThreads;
 	}
 
     public void run()
@@ -381,10 +373,10 @@ class Computer implements Runnable{
 			// Wait until it is time to calculate a hash
 			if(chain.timeToCalc)
 			{
-                mineBlock(prefix, chain.numThreads);
+                mineBlock(prefix, numThreads);
                 if(!chain.nonceFound)
                 {
-					chain.setBlockAndStop(ID);
+					chain.setBlockAndStop(ID, nonce);
                 }
                 else
                 {
@@ -396,7 +388,6 @@ class Computer implements Runnable{
     }
 
 	public void stop() {	
-		chain.size = chain.size - 2;
 		chainComplete = true;
 	}
 
