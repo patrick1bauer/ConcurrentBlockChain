@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::convert::TryInto;
-use devtimer::DevTime;
+use std::time::Instant;
 use std::time::SystemTime;
 
 #[derive(Debug)]
@@ -82,21 +82,18 @@ fn main() {
     let puzzle = String::from(puzzle);
  
     let mut blockchain: Vec<Block> = Vec::new();
-    let mut times: Vec<u128> = Vec::new();
+    let mut times: Vec<f64> = Vec::new();
 
-    let mut timer_total = DevTime::new_simple();
-    let mut timer_blocks = DevTime::new_simple();
+    let timer_total = Instant::now();
 
-    timer_total.start();
     if let Ok(lines) = read_lines(filename) {
         let data = String::from("The genesis block");
         let p_hash = String::from("00000000000000000000000000000000");
         let gen_block = Block::new_block(&data, &p_hash, None);
         blockchain.push(gen_block);
-        let mut index = 0;
         for line in lines {
             if let Ok(content) = line {
-                timer_blocks.start();
+                let timer_block = Instant::now();
                 let mut done = false;
                 while !done {
                     let mut i: i64 = 0;
@@ -116,25 +113,24 @@ fn main() {
                         done = true;
                     }
                 }
-                timer_blocks.stop();
-                times.push(timer_blocks.time_in_millis().unwrap());
+                let block_time = (timer_block.elapsed().as_micros() as f64) / 1000.0;
+                times.push(block_time);
             }
-            index += 1;
         }
     } else {
         println!("FILE ERROR:\n\nYou must enter a valid file name for your second commandline argument. Make sure your file is in the current directory and input it in the form ./filename\n\n");
         return;
     }
-    timer_total.stop();
-    let mut avg_time = 0;
-    let div: u128 = times.len().try_into().unwrap();
+    let total_time = (timer_total.elapsed().as_micros() as f64) / 1000.0;
+    let mut avg_time = 0.0;
+    let div = times.len() as f64;
     for time in times {
         avg_time = avg_time + time;
     }
 
     avg_time = avg_time / div;
 
-    println!("{} {}\n", timer_total.time_in_millis().unwrap(), avg_time);
+    println!("{:.6} {:.6}\n", total_time, avg_time);
 }
 
 fn solve_puzzle(time_stamp: &str, content: &str, p_hash: &str, hash: &str, nonce: Option<i64>) -> String {
