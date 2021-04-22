@@ -28,7 +28,7 @@ public class BlockchainMultiThreaded{
 		if (args.length > 0) {
 			try {
 				chain.numThreads = Integer.parseInt(args[0]);
-				System.out.println("Num of threads " + chain.numThreads);
+				//System.out.println("Num of threads " + chain.numThreads);
 			} 
 			catch (NumberFormatException e) 
 			{
