@@ -194,7 +194,7 @@ public class BlockchainMultiThreaded{
 
 		// Grab miminum time, maximum time, and total time
 		double totalTime = 0.0; 
-		for(int i = 0; i < chain.size; i++)
+		for(int i = 0; i < chain.size -1 ; i++)
 		{
 			totalTime += times.get(i);
 			if(shortestBlock > times.get(i))
@@ -388,7 +388,6 @@ class Computer implements Runnable{
     }
 
 	public void stop() {	
-		chain.size = chain.size - 4;
 		chainComplete = true;
 	}
 
