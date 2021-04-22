@@ -9,13 +9,15 @@ import java.util.*;
 public class BlockchainSingleThreaded {
 	static List<Block> blockchain = new ArrayList<>();
     // Prefix dictates the difficulty of block mining, the higher the prefix, the more 0s required at the beginning of a block header hash
-	static int prefix = 2;
+	static int prefix;
 
 	// main method
 	public static void main(String[] args) {
+		prefix = Integer.parseInt(args[0]);
+		double startBlock;
 		// Print to screen creation of genesis block
-		System.out.println("creating genesis block...");
-
+		//System.out.println("creating genesis block...");
+		startBlock = System.nanoTime();
 		Scanner in = new Scanner(System.in);
 		String data = null;
 		// Grab the first file line as data for the genesis block
@@ -25,10 +27,8 @@ public class BlockchainSingleThreaded {
 		double shortestBlock = Double.MAX_VALUE;
 		double longestBlock = Double.MIN_VALUE;
 		double blockTime;
-		double startBlock;
 		double endBlock;
 
-		startBlock = System.nanoTime();
 		// Instantiate the genesis block
 		Block genesisBlock = new Block(data, "", new Date().getTime());
 		// Mine the genesis block, to create the hash for our next block
@@ -73,7 +73,7 @@ public class BlockchainSingleThreaded {
 			previousHash = newBlock.getHash();
 			}
 		// Grab miminum time, maximum time, and total time
-		double totalTime = 0.0; 
+		double totalTime = 0.0;
 		for(Double time : times)
 		{
 			totalTime += time;
