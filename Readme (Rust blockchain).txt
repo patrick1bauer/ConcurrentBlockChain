@@ -67,11 +67,11 @@ sudo apt-get install build-essential -y
 
 In Command Prompt, navigate to the single_blockchain project, and build/run with the following commands:
 	cargo build
-  	cargo run
+  	cargo run <prefix> <file name>
 	
 In Command Prompt, navigate to the multi_blockchain project, and build/run with the following commands:
 	cargo build
-  	cargo run
+  	cargo run <prefix> <file name>
 
 --------------------------------------------------------------------------------------------
 
